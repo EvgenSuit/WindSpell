@@ -5,9 +5,12 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.PressInteraction
+import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -17,18 +20,23 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.rounded.List
 import androidx.compose.material3.Divider
 import androidx.compose.material3.DrawerValue
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.NavigationDrawerItem
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldColors
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -42,6 +50,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.FocusState
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
@@ -66,7 +75,9 @@ import java.time.Instant
 import kotlin.math.roundToInt
 
 @Composable
-fun MainScreen(viewModel: WeatherViewModel = viewModel(factory = WeatherViewModel.Factory)) {
+fun MainScreen(viewModel: WeatherViewModel = viewModel(factory = WeatherViewModel.Factory),
+               darkTheme: Boolean,
+               onThemeChanged: (Boolean) -> Unit) {
     val weatherResult by viewModel.weatherResult.collectAsState()
     val forecastResult by viewModel.forecastResult.collectAsState()
     val weatherItems by viewModel.weatherItems.collectAsState()
@@ -99,9 +110,6 @@ fun MainScreen(viewModel: WeatherViewModel = viewModel(factory = WeatherViewMode
                     CityDrawer(weatherItem = it,
                         onClick = {
                             cityConfirmed = true
-                            coroutineScope.launch {
-                                drawerState.apply { close() }
-                            }
                             /*
                             If the difference between the time of the last weather update
                             and current time is bigger than or equal to an hour,
@@ -110,18 +118,25 @@ fun MainScreen(viewModel: WeatherViewModel = viewModel(factory = WeatherViewMode
                              */
                             if (it.lastTimeUpdated - Instant.now().toEpochMilli() >= 60 * 60 * 1000L) {
                                 coroutineScope.launch {
+                                    drawerState.apply { close() }
                                     viewModel.getWeather(it.cityName)
                                 }
                             } else {
-                                viewModel.updateWeatherResult(it)
-                                viewModel.updateForecastResult(it.forecastUnit)
+                                coroutineScope.launch {
+                                    drawerState.apply { close() }
+                                    viewModel.updateWeatherResult(it)
+                                    viewModel.updateForecastResult(it.forecastUnit)
+                                }
+
                             }
                             },
                         onDelete = { viewModel.deleteWeatherItem(it.cityName) })
                 }
+                Spacer(modifier = Modifier.weight(1f))
+                ToggleButton(darkTheme, onThemeChanged,
+                    modifier = Modifier.align(Alignment.End))
             }
         }) {
-            Column {
                 MainDrawerContent(
                     onTextChanged = {job?.cancel()
                         job = coroutineScope.launch {
@@ -146,9 +161,20 @@ fun MainScreen(viewModel: WeatherViewModel = viewModel(factory = WeatherViewMode
                     weatherResult = weatherResult,
                     forecastResult = forecastResult,
                     cityConfirmed = cityConfirmed)
-            }
     }
 }
+
+@Composable
+fun ToggleButton(darkTheme: Boolean,
+                 onThemeChanged: (Boolean) -> Unit,
+                 modifier: Modifier = Modifier) {
+    Row(modifier = modifier) {
+        //Icon
+
+        Switch(checked = darkTheme, onCheckedChange = onThemeChanged)
+    }
+}
+
 @Composable
 fun DrawerButton(onDrawerButtonPressed: () -> Unit) {
     IconButton(onClick = onDrawerButtonPressed) {
@@ -167,7 +193,8 @@ fun MainDrawerContent(
     cityConfirmed: Boolean
 ) {
     Column(
-        horizontalAlignment = Alignment.CenterHorizontally
+        horizontalAlignment = Alignment.CenterHorizontally,
+        //modifier = Modifier.background(MaterialTheme.colorScheme.background)
     ) {
         Row{
             DrawerButton (onDrawerButtonPressed = onDrawerButtonPressed)
@@ -183,6 +210,7 @@ fun MainDrawerContent(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SearchBar(
     citySuggestion: String,
@@ -198,6 +226,10 @@ fun SearchBar(
     val focusRequester = remember {
         FocusRequester()
     }
+    val interactionSource = remember {
+        MutableInteractionSource()
+    }
+    val focused by interactionSource.collectIsFocusedAsState()
     val focusManager = LocalFocusManager.current
     //If results are not satisfied, a country code should be added (in uppercase)
     /*If they are still not satisfied, it means that
@@ -206,13 +238,21 @@ fun SearchBar(
      */
     Column{
         TextField(
+            interactionSource = interactionSource,
             value = city,
+            colors = TextFieldDefaults.colors(
+               // focusedContainerColor = Color.Transparent,
+                unfocusedContainerColor = Color.Transparent,
+                unfocusedIndicatorColor = Color.Transparent
+            ),
             trailingIcon = {
              IconButton(
                   onClick = {
                       city = ""
                       focusRequester.requestFocus()}) {
-                               Icon(imageVector = Icons.Filled.Clear, contentDescription = null)
+                               if (city.isNotBlank()) {
+                                   Icon(imageVector = Icons.Filled.Clear, contentDescription = null)
+                               }
                            }
             },
             keyboardOptions = KeyboardOptions(
@@ -235,7 +275,7 @@ fun SearchBar(
                         }
                     }
             },
-            label = {Text("City")},
+            label = { if (!focused) Icon(imageVector = Icons.Filled.Search, contentDescription = null)},
             modifier = Modifier
                 .focusRequester(focusRequester)
                 .fillMaxWidth()
@@ -258,7 +298,7 @@ fun SuggestedCity(
     suggestedCity: String) {
     Row(
         modifier = Modifier
-            .background(Color.Blue)
+            .background(MaterialTheme.colorScheme.inversePrimary)
             .fillMaxWidth(),
         horizontalArrangement = Arrangement.Center
     ) {
@@ -283,6 +323,8 @@ fun WeatherDetails(
             horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
             .padding(15.dp)
+            //.background(MaterialTheme.colorScheme.background)
+            //.fillMaxSize()
             .testTag("WeatherDetails")
         ) {
            Row(
@@ -299,12 +341,12 @@ fun WeatherDetails(
                        lineHeight = 55.sp,
                        style = MaterialTheme.typography.titleMedium,)
 
-                   //Temperature
+                   //Temperature (\u2103 means Celsius)
                    Text("${weatherResult.main.temp.roundToInt()} \u2103",
                        modifier = Modifier.padding(top = 10.dp),
                        style = MaterialTheme.typography.displayMedium)
                        Text("${weatherResult.main.tempMin.roundToInt()} \u2103" +
-                               "/${weatherResult.main.tempMax.roundToInt()} \u2103",
+                               " / ${weatherResult.main.tempMax.roundToInt()} \u2103",
                            style = MaterialTheme.typography.displayMedium)
 
                    //Weather condition
@@ -346,7 +388,10 @@ fun CityDrawer(weatherItem: WeatherItem,
         interactionSource = interactionSource,
         icon = {if (weatherItemLongClicked) {
             IconButton(
-                onClick = onDelete) {
+                onClick = {
+                    onDelete()
+                    weatherItemLongClicked = false
+                }) {
                 Icon(imageVector = Icons.Filled.Delete, contentDescription = null)
             }
         } },
@@ -354,6 +399,7 @@ fun CityDrawer(weatherItem: WeatherItem,
         selected = false, onClick = {
             if (!weatherItemLongClicked) {
                onClick()
+                weatherItemLongClicked = false
             }
         })
 }
