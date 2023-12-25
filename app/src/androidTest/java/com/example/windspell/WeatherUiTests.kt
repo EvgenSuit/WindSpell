@@ -1,7 +1,6 @@
 package com.example.windspell
 
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -9,9 +8,8 @@ import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.printToLog
-import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.example.windspell.screens.MainScreen
+import com.example.windspell.components.MainScreen
 import com.example.windspell.ui.theme.WindSpellTheme
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
