@@ -18,6 +18,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 import org.junit.Assert.*
+import org.junit.Before
 import org.junit.Rule
 
 /**
@@ -30,19 +31,26 @@ class WeatherUiTests {
     @get:Rule
     val composeTestRule = createComposeRule()
 
-    @Test
-    fun cityEntered_suggestedCityClicked_weatherShown() = runBlocking {
+    @Before
+    fun initTestRule() {
         composeTestRule.setContent {
             WindSpellTheme {
-                MainScreen()
+                MainScreen {}
             }
         }
+    }
+    @Test
+    fun cityEntered_suggestedCityClicked_weatherShown() = runBlocking {
         composeTestRule.onNodeWithTag("SearchBar").assertTextContains("")
         composeTestRule.onNodeWithTag("SearchBar").performTextInput("London GB")
         delay(2000L)
         composeTestRule.onNodeWithTag("SuggestedCity").assertIsDisplayed()
         composeTestRule.onNodeWithTag("SuggestedCity").performClick()
         composeTestRule.onNodeWithTag("WeatherDetails").assertIsDisplayed()
-        composeTestRule.onRoot().printToLog("TAG")
+    }
+
+    @Test
+    fun toggleButtonPressed_themeChanged() {
+        composeTestRule.onNodeWithTag("ChangeTheme").performClick()
     }
 }

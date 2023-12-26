@@ -15,8 +15,8 @@ import com.google.gson.reflect.TypeToken
 
 @Entity
 data class WeatherItem(
-    @PrimaryKey(autoGenerate = true)
-    val id: Int = 0,
+    @PrimaryKey
+    val cityId: Int = 0,
     val cityName: String = "",
     @Embedded
     val main: Main,
@@ -27,6 +27,7 @@ data class WeatherItem(
     val sys: Sys,
     @TypeConverters(ForecastListConverter::class)
     val forecastUnit: List<ForecastUnit>,
+    val lang: String = "",
     val lastTimeUpdated: Long = 0
 )
 

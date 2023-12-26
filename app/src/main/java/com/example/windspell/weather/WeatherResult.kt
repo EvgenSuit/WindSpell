@@ -7,7 +7,8 @@ data class WeatherResult(
     @SerializedName("main") var main: Main = Main(),
     @SerializedName("weather") var weather: List<Weather> = listOf(),
     @SerializedName("name") var name: String = "",
-    @SerializedName("sys") var sys: Sys = Sys()
+    @SerializedName("sys") var sys: Sys = Sys(),
+    @SerializedName("id") var cityDd: Int = 0
 )
 
 data class Weather (
@@ -25,5 +26,5 @@ data class Main (
 )
 
 data class Sys (
-    @SerializedName("country") var country: String = ""
+    @SerializedName("country") var country: String = "",
 )

@@ -32,26 +32,24 @@ import kotlin.math.roundToInt
 
 @Composable
 fun Forecasts(forecastResult: ForecastResult,
+              lang: String,
               modifier: Modifier = Modifier) {
-    if (forecastResult.list.isNotEmpty()) {
-        Log.d("FORECAST", forecastResult.list[0].temp.day.toString())
-    }
     Column(
         verticalArrangement = Arrangement.spacedBy(10.dp),
-        modifier = modifier.padding(35.dp)//.background(Color.White)
+        modifier = modifier.padding(35.dp)
     ) {
         forecastResult.list.forEach {
-            ForecastItem(forecastUnit = it)
+            ForecastItem(forecastUnit = it, lang)
         }
     }
 }
 
 @Composable
-fun ForecastItem(forecastUnit: ForecastUnit) {
+fun ForecastItem(forecastUnit: ForecastUnit, lang: String) {
     Row(
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text("${timestampToDate(forecastUnit.timestamp)}") //convert to week day
+        Text(timestampToDate(forecastUnit.timestamp, lang)) //convert to week day
         Spacer(modifier = Modifier.weight(1f))
 
         Image(painter = painterResource(id = getWeatherIcon(forecastUnit.weather.first().icon)),
@@ -65,7 +63,36 @@ fun ForecastItem(forecastUnit: ForecastUnit) {
     }
 }
 
-fun timestampToDate(timestamp: Long): DayOfWeek {
+fun timestampToDate(timestamp: Long, lang: String): String {
     val instant = Instant.ofEpochSecond(timestamp)
-    return DayOfWeek.from(instant.atZone(ZoneId.systemDefault()))
+    val dayOfWeek = DayOfWeek.from(instant.atZone(ZoneId.systemDefault()))
+    return translatedDayNames(dayOfWeek, lang)
+}
+
+fun translatedDayNames(dayOfWeek: DayOfWeek, lang: String):String {
+    if (lang == "ru" || lang == "by") {
+        return when(dayOfWeek.name) {
+            "MONDAY" -> "ПОНЕДЕЛЬНИК"
+            "TUESDAY" -> "ВТОРНИК"
+            "WEDNESDAY" -> "СРЕДА"
+            "THURSDAY" -> "ЧЕТВЕРГ"
+            "FRIDAY" -> "ПЯТНИЦА"
+            "SATURDAY" -> "СУББОТА"
+            else -> "ВОСКРЕСЕНЬЕ"
+        }
+    }
+    if (lang == "pl") {
+        return when(dayOfWeek.name) {
+            "MONDAY" -> "PONIEDZIAŁEK"
+            "TUESDAY" -> "WTOREK"
+            "WEDNESDAY" -> "ŚRODA"
+            "THURSDAY" -> "CZWARTEK"
+            "FRIDAY" -> "PIĄTEK"
+            "SATURDAY" -> "SOBOTA"
+            else -> "NIEDZIELA"
+        }
+    }
+    else {
+        return dayOfWeek.name
+    }
 }
