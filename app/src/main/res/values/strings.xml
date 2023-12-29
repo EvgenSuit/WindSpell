@@ -1,4 +1,5 @@
 <resources>
     <string name="app_name">Wind Spell</string>
     <string name="cities">Cities</string>
+    <string name="as_of">As of</string>
 </resources>

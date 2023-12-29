@@ -28,6 +28,7 @@ data class WeatherItem(
     @TypeConverters(ForecastListConverter::class)
     val forecastUnit: List<ForecastUnit>,
     val lang: String = "",
+    val dt: Long,
     val lastTimeUpdated: Long = 0
 )
 

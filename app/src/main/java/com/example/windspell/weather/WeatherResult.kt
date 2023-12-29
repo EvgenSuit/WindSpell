@@ -8,10 +8,11 @@ data class WeatherResult(
     @SerializedName("weather") var weather: List<Weather> = listOf(),
     @SerializedName("name") var name: String = "",
     @SerializedName("sys") var sys: Sys = Sys(),
+    @SerializedName("dt") var dt: Long = 0,
     @SerializedName("id") var cityDd: Int = 0
 )
 
-data class Weather (
+data class  Weather (
     @SerializedName("main") var main: String = "",
     @SerializedName("description") var description: String = "",
     @SerializedName("icon") var icon: String = ""

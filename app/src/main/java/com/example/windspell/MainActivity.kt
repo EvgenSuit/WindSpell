@@ -4,6 +4,7 @@ import android.content.Context
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -22,24 +23,31 @@ import com.example.windspell.components.MainScreen
 import com.example.windspell.network.ConnectionState
 import com.example.windspell.network.connectivityState
 import com.example.windspell.ui.theme.WindSpellTheme
+import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import java.util.Locale
+import javax.inject.Inject
 
 val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "theme")
 val darkThemePrefs = booleanPreferencesKey(name = "useDarkTheme")
 
 class MainActivity : ComponentActivity() {
+
+    private fun Context.setAppLocale(language: String): Context {
+        val config = resources.configuration
+        val locale = Locale(language)
+        Locale.setDefault(locale)
+        config.setLocale(locale)
+        config.setLayoutDirection(locale)
+        return createConfigurationContext(config)
+    }
+    override fun attachBaseContext(newBase: Context) {
+        super.attachBaseContext(newBase.setAppLocale("pl"))
+    }
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        val config = resources.configuration
-        val locale = Locale.getDefault()
-        config.setLocale(locale)
-        createConfigurationContext(config)
-        resources.configuration.updateFrom(config)
-
         setContent {
             val coroutineScope = rememberCoroutineScope()
             var darkTheme by rememberSaveable {

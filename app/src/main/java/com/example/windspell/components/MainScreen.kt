@@ -1,5 +1,8 @@
 package com.example.windspell.components
 
+import android.app.Application
+import android.content.Context
+import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -48,6 +51,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalViewConfiguration
 import androidx.compose.ui.platform.testTag
@@ -57,10 +61,17 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.longPreferencesKey
+import androidx.datastore.preferences.preferencesDataStore
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.windspell.R
 import com.example.windspell.WeatherViewModel
 import com.example.windspell.data.WeatherItem
+import com.example.windspell.dataStore
 import com.example.windspell.network.ShowNoNetwork
 import com.example.windspell.weather.ForecastResult
 import com.example.windspell.weather.WeatherResult
@@ -71,14 +82,12 @@ import kotlinx.coroutines.launch
 import java.time.Instant
 import kotlin.math.roundToInt
 
-
+val Context.weatherDataStore: DataStore<Preferences> by preferencesDataStore(name = "weatherItem")
 @Composable
 fun MainScreen(viewModel: WeatherViewModel = viewModel(factory = WeatherViewModel.Factory),
-               darkTheme: Boolean = false,
-               networkIsOn: Boolean = false,
-               onThemeChanged: (Boolean) -> Unit,
-               ) {
-
+               darkTheme: Boolean,
+               networkIsOn: Boolean = true,
+               onThemeChanged: (Boolean) -> Unit){
     val weatherResult by viewModel.weatherResult.collectAsState()
     val forecastResult by viewModel.forecastResult.collectAsState()
     val weatherItems by viewModel.weatherItems.collectAsState()
@@ -88,7 +97,6 @@ fun MainScreen(viewModel: WeatherViewModel = viewModel(factory = WeatherViewMode
     var cityConfirmed by rememberSaveable { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
     val drawerState = rememberDrawerState(DrawerValue.Closed)
-
     val textSearch = weatherResult.name.trim()
     Column(
         horizontalAlignment = Alignment.CenterHorizontally
@@ -162,12 +170,17 @@ fun MainScreen(viewModel: WeatherViewModel = viewModel(factory = WeatherViewMode
                     cityConfirmed = it
                     if (cityConfirmed) {
                         viewModel.insertWeatherItem(textSearch, weatherResult, forecastResult)
+                        viewModel.updateWeatherResult(weatherResult)
+                        viewModel.updateForecastResult(forecastResult.list)
+                        Log.d("UPDATE", "UPDATED")
                     }
                 },
                 textSearch = textSearch,
                 weatherResult = weatherResult,
                 forecastResult = forecastResult,
                 cityConfirmed = cityConfirmed,
+                defaultCityLoaded = viewModel.defaultCityLoaded.value,
+                timestampToDate = {viewModel.timestampToDate(it)},
                 lang = viewModel.lang)
         }
     }
@@ -194,10 +207,12 @@ fun MainDrawerContent(
     onTextChanged: (String) -> Unit,
     onSuggestionChanged: (Boolean) -> Unit,
     onDrawerButtonPressed: () -> Unit,
+    timestampToDate: (Long) -> String,
     textSearch: String,
     weatherResult: WeatherResult,
     forecastResult: ForecastResult,
     cityConfirmed: Boolean,
+    defaultCityLoaded: Boolean,
     lang: String
 ) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -208,9 +223,11 @@ fun MainDrawerContent(
                 onTextChanged = onTextChanged,
                 onSuggestionChanged = onSuggestionChanged)
         }
-        if (cityConfirmed && weatherResult.weather.isNotEmpty()) {
-            WeatherDetails(weatherResult)
+        if ((cityConfirmed || defaultCityLoaded) && weatherResult.weather.isNotEmpty()) {
+            WeatherDetails(weatherResult, timestampToDate)
             Forecasts(forecastResult, lang)
+            Spacer(modifier = Modifier.weight(1f))
+            Text("${stringResource(id = R.string.as_of)} ${timestampToDate(weatherResult.dt)}", modifier = Modifier.padding(10.dp))
         }
     }
 }
@@ -235,6 +252,10 @@ fun SearchBar(
     }
     val focused by interactionSource.collectIsFocusedAsState()
     val focusManager = LocalFocusManager.current
+    /*
+    If search results are not satisfy, it's worth entering a country code
+    e.g: New York, US
+     */
     Column{
         TextField(
             interactionSource = interactionSource,
@@ -315,7 +336,8 @@ fun SuggestedCity(
 
 @Composable
 fun WeatherDetails(
-    weatherResult: WeatherResult) {
+    weatherResult: WeatherResult,
+    timestampToDate: (Long) -> String) {
     val weatherConditionIcon = weatherResult.weather.first().icon
     Column(
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -325,41 +347,49 @@ fun WeatherDetails(
         ) {
            Row(
                horizontalArrangement = Arrangement.spacedBy(20.dp),
-               modifier = Modifier.padding(top = 50.dp)
+               modifier = Modifier.padding(top = 10.dp)
            ) {
                Column(
                    modifier = Modifier
                        .align(Alignment.CenterVertically)
                        .weight(1f)
                ) {
-                   //City(Location) name
+                   //City + Country name
                    Text(
-                       weatherResult.name,
+                       "${weatherResult.name}, " +
+                               weatherResult.sys.country,
                        lineHeight = 55.sp,
                        style = MaterialTheme.typography.titleMedium,
                    )
 
                    //Temperature (\u2103 means Celsius)
-                   Text("${weatherResult.main.temp.roundToInt()} \u2103",
+                   Text(
+                       "${weatherResult.main.temp.roundToInt()} \u2103",
                        modifier = Modifier.padding(top = 10.dp),
-                       style = MaterialTheme.typography.displayMedium)
-                       Text("${weatherResult.main.tempMin.roundToInt()} \u2103" +
+                       style = MaterialTheme.typography.displayMedium
+                   )
+                   Text(
+                       "${weatherResult.main.tempMin.roundToInt()} \u2103" +
                                " / ${weatherResult.main.tempMax.roundToInt()} \u2103",
-                           style = MaterialTheme.typography.displayMedium)
+                       style = MaterialTheme.typography.displayMedium
+                   )
 
                    //Weather condition
-                   Text(if (weatherResult.weather.isEmpty()) "" else weatherResult.weather.first().description,
+                   Text(
+                       if (weatherResult.weather.isEmpty()) "" else weatherResult.weather.first().description,
                        modifier = Modifier.padding(top = 10.dp),
-                       style = MaterialTheme.typography.displayMedium)
+                       style = MaterialTheme.typography.displayMedium
+                   )
                }
                //Weather icon
-               Image(painter = painterResource(getWeatherIcon(weatherConditionIcon)),
+               Image(
+                   painter = painterResource(getWeatherIcon(weatherConditionIcon)),
                    modifier = Modifier
                        .size(200.dp)
                        .weight(1f),
-                   contentDescription = null)
+                   contentDescription = null
+               )
            }
-
         }
 }
 
