@@ -12,3 +12,5 @@
 <a href="https://www.flaticon.com/free-icons/thunderstorm" title="thunderstorm icons">Thunderstorm icons created by Freepik - Flaticon</a>
 <a href="https://www.flaticon.com/free-icons/snow" title="snow icons">Snow icons created by Konkapp - Flaticon</a>
 <a href="https://www.flaticon.com/free-icons/mist" title="mist icons">Mist icons created by Good Ware - Flaticon</a>
+<a href="https://www.flaticon.com/free-icons/sunrise" title="sunrise icons">Sunrise icons created by Mehwish - Flaticon</a>
+<a href="https://www.flaticon.com/free-icons/sunset" title="sunset icons">Sunset icons created by Mehwish - Flaticon</a>

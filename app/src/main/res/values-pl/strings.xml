@@ -3,4 +3,6 @@
     <string name="app_name">Wind Spell</string>
     <string name="cities">Miasta</string>
     <string name="as_of">Od</string>
+    <string name="sunrise">Wschód Słońca</string>
+    <string name="sunset">Zachód Słońca</string>
 </resources>

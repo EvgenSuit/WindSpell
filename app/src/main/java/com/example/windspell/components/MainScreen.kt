@@ -1,6 +1,5 @@
 package com.example.windspell.components
 
-import android.app.Application
 import android.content.Context
 import android.util.Log
 import androidx.compose.foundation.Image
@@ -16,8 +15,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Delete
@@ -51,10 +54,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalViewConfiguration
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
@@ -63,15 +66,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
-import androidx.datastore.preferences.core.edit
-import androidx.datastore.preferences.core.intPreferencesKey
-import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.windspell.R
 import com.example.windspell.WeatherViewModel
 import com.example.windspell.data.WeatherItem
-import com.example.windspell.dataStore
 import com.example.windspell.network.ShowNoNetwork
 import com.example.windspell.weather.ForecastResult
 import com.example.windspell.weather.WeatherResult
@@ -108,7 +107,7 @@ fun MainScreen(viewModel: WeatherViewModel = viewModel(factory = WeatherViewMode
             drawerState = drawerState,
             drawerContent = {
                 ModalDrawerSheet(
-                    modifier = Modifier.width(200.dp)
+                    modifier = Modifier.width(dimensionResource(id = R.dimen.padding_huge))
                 ) {
                     Row{
                         DrawerButton (onDrawerButtonPressed = {
@@ -118,33 +117,40 @@ fun MainScreen(viewModel: WeatherViewModel = viewModel(factory = WeatherViewMode
                                 }
                             }
                         })
-                        Text(stringResource(id = R.string.cities),  modifier = Modifier.padding(16.dp))
+                        Text(stringResource(id = R.string.cities),  modifier = Modifier.padding(
+                            dimensionResource(id = R.dimen.padding_small)))
                     }
                     Divider()
-                    weatherItems.forEach {
-                        CityDrawer(weatherItem = it,
-                            onClick = {
-                                cityConfirmed = true
-                                /*
-                                If the difference between the time of the last weather update
-                                and current time is bigger than or equal to an hour, network is on
-                                and the language setting has been changed,
-                                fetch up-to-date weather data. Otherwise fetch data
-                                from the DB
-                                 */
-                                if (networkIsOn && (it.lastTimeUpdated - Instant.now().epochSecond >= 60 * 60 * 1000L || it.lang != viewModel.lang)) {
-                                    coroutineScope.launch {
-                                        drawerState.apply { close() }
-                                        viewModel.getWeather(it.cityName, true)
-                                    }}
-                                 else {
-                                    coroutineScope.launch {
-                                        drawerState.apply { close() }
-                                        viewModel.updateWeatherItem(it)
-                                        viewModel.updateForecastResult(it.forecastUnit)
-                                    }}
-                            },
-                            onDelete = { viewModel.deleteWeatherItem(it.cityName) })
+                    LazyColumn(
+                        verticalArrangement = Arrangement.spacedBy(
+                            dimensionResource(id = R.dimen.padding_small)
+                        )
+                    ) {
+                        items(weatherItems) {
+                            CityDrawer(weatherItem = it,
+                                onClick = {
+                                    cityConfirmed = true
+                                    /*
+                                    If the difference between the time of the last weather update
+                                    and current time is bigger than or equal to an hour, network is on
+                                    or the language setting has been changed,
+                                    fetch up-to-date weather data. Otherwise fetch data
+                                    from the DB
+                                     */
+                                    if (networkIsOn && (Instant.now().epochSecond - it.lastTimeUpdated >= 60 * 60 || it.lang != viewModel.lang)) {
+                                        coroutineScope.launch {
+                                            drawerState.apply { close() }
+                                            viewModel.getWeather("${it.cityName}, ${it.sys.country}", true, cityId =  it.cityId)
+                                        }}
+                                    else {
+                                        coroutineScope.launch {
+                                            drawerState.apply { close() }
+                                            viewModel.updateWeatherItem(it)
+                                            viewModel.updateForecastResult(it.forecastUnit)
+                                        }}
+                                },
+                                onDelete = { viewModel.deleteWeatherItem(it.cityId) })
+                        }
                     }
                     Spacer(modifier = Modifier.weight(1f))
                     ChangeTheme(darkTheme, onThemeChanged,
@@ -155,7 +161,7 @@ fun MainScreen(viewModel: WeatherViewModel = viewModel(factory = WeatherViewMode
                 onTextChanged = {job?.cancel()
                     if (networkIsOn) {
                         job = coroutineScope.launch {
-                            delay(200L)
+                            delay(300L)
                             viewModel.getWeather(it, false)
                         }
                     }
@@ -172,7 +178,6 @@ fun MainScreen(viewModel: WeatherViewModel = viewModel(factory = WeatherViewMode
                         viewModel.insertWeatherItem(textSearch, weatherResult, forecastResult)
                         viewModel.updateWeatherResult(weatherResult)
                         viewModel.updateForecastResult(forecastResult.list)
-                        Log.d("UPDATE", "UPDATED")
                     }
                 },
                 textSearch = textSearch,
@@ -180,7 +185,7 @@ fun MainScreen(viewModel: WeatherViewModel = viewModel(factory = WeatherViewMode
                 forecastResult = forecastResult,
                 cityConfirmed = cityConfirmed,
                 defaultCityLoaded = viewModel.defaultCityLoaded.value,
-                timestampToDate = {viewModel.timestampToDate(it)},
+                timestampToDate = {timestamp, includeMMddyy -> viewModel.timestampToDate(timestamp, includeMMddyy)},
                 lang = viewModel.lang)
         }
     }
@@ -207,7 +212,7 @@ fun MainDrawerContent(
     onTextChanged: (String) -> Unit,
     onSuggestionChanged: (Boolean) -> Unit,
     onDrawerButtonPressed: () -> Unit,
-    timestampToDate: (Long) -> String,
+    timestampToDate: (Long, Boolean) -> String,
     textSearch: String,
     weatherResult: WeatherResult,
     forecastResult: ForecastResult,
@@ -215,7 +220,8 @@ fun MainDrawerContent(
     defaultCityLoaded: Boolean,
     lang: String
 ) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier.verticalScroll(rememberScrollState())) {
         Row{
             DrawerButton (onDrawerButtonPressed = onDrawerButtonPressed)
             SearchBar(
@@ -223,11 +229,15 @@ fun MainDrawerContent(
                 onTextChanged = onTextChanged,
                 onSuggestionChanged = onSuggestionChanged)
         }
+
         if ((cityConfirmed || defaultCityLoaded) && weatherResult.weather.isNotEmpty()) {
-            WeatherDetails(weatherResult, timestampToDate)
+            WeatherDetails(weatherResult)
             Forecasts(forecastResult, lang)
-            Spacer(modifier = Modifier.weight(1f))
-            Text("${stringResource(id = R.string.as_of)} ${timestampToDate(weatherResult.dt)}", modifier = Modifier.padding(10.dp))
+            Spacer(modifier =Modifier.padding(bottom = dimensionResource(id = R.dimen.padding_small)))
+            SunriseSunsetInfo(weatherResult, timestampToDate)
+            Spacer(modifier =Modifier.padding(bottom = dimensionResource(id = R.dimen.padding_medium)))
+            Text("${stringResource(id = R.string.as_of)} ${timestampToDate(weatherResult.dt, true)}", modifier = Modifier.padding(
+                dimensionResource(id = R.dimen.padding_small)))
         }
     }
 }
@@ -253,7 +263,7 @@ fun SearchBar(
     val focused by interactionSource.collectIsFocusedAsState()
     val focusManager = LocalFocusManager.current
     /*
-    If search results are not satisfy, it's worth entering a country code
+    If search results are not satisfied, it's worth entering a country code
     e.g: New York, US
      */
     Column{
@@ -328,7 +338,7 @@ fun SuggestedCity(
                 color = Color.White,
                 style = MaterialTheme.typography.displayMedium,
                 modifier = Modifier
-                    .padding(10.dp)
+                    .padding(dimensionResource(id = R.dimen.padding_small))
                     .fillMaxWidth())
         }
     }
@@ -336,18 +346,18 @@ fun SuggestedCity(
 
 @Composable
 fun WeatherDetails(
-    weatherResult: WeatherResult,
-    timestampToDate: (Long) -> String) {
+    weatherResult: WeatherResult) {
     val weatherConditionIcon = weatherResult.weather.first().icon
+    val paddingSmall = dimensionResource(id = R.dimen.padding_small)
     Column(
             horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
-            .padding(15.dp)
+            .padding(paddingSmall)
             .testTag("WeatherDetails")
         ) {
            Row(
-               horizontalArrangement = Arrangement.spacedBy(20.dp),
-               modifier = Modifier.padding(top = 10.dp)
+               horizontalArrangement = Arrangement.spacedBy(paddingSmall),
+               modifier = Modifier.padding(top = paddingSmall)
            ) {
                Column(
                    modifier = Modifier
@@ -365,7 +375,7 @@ fun WeatherDetails(
                    //Temperature (\u2103 means Celsius)
                    Text(
                        "${weatherResult.main.temp.roundToInt()} \u2103",
-                       modifier = Modifier.padding(top = 10.dp),
+                       modifier = Modifier.padding(top = paddingSmall),
                        style = MaterialTheme.typography.displayMedium
                    )
                    Text(
@@ -377,7 +387,7 @@ fun WeatherDetails(
                    //Weather condition
                    Text(
                        if (weatherResult.weather.isEmpty()) "" else weatherResult.weather.first().description,
-                       modifier = Modifier.padding(top = 10.dp),
+                       modifier = Modifier.padding(top = paddingSmall),
                        style = MaterialTheme.typography.displayMedium
                    )
                }
@@ -385,12 +395,43 @@ fun WeatherDetails(
                Image(
                    painter = painterResource(getWeatherIcon(weatherConditionIcon)),
                    modifier = Modifier
-                       .size(200.dp)
+                       .size(dimensionResource(id = R.dimen.padding_huge))
                        .weight(1f),
                    contentDescription = null
                )
            }
         }
+}
+
+@Composable
+fun SunriseSunsetInfo(weatherResult: WeatherResult,
+                      timestampToDate: (Long, Boolean) -> String) {
+    //size is 100 dp since icon size is 256px
+    val iconSize = dimensionResource(id = R.dimen.sunrise_sunset_icon_size)
+    val padding = dimensionResource(id = R.dimen.padding_tiny)
+    Row(modifier = Modifier.padding(dimensionResource(id = R.dimen.padding_medium))) {
+       Column(
+           horizontalAlignment = Alignment.CenterHorizontally,
+           verticalArrangement = Arrangement.spacedBy(padding)
+       ) {
+           Text(stringResource(id = R.string.sunrise))
+           Image(painter = painterResource(id = R.drawable.sunrise),
+               modifier = Modifier.size(iconSize),
+               contentDescription = null)
+           Text(timestampToDate(weatherResult.sys.sunrise, false))
+       }
+        Spacer(modifier = Modifier.weight(0.7f))
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(padding)
+        ) {
+            Text(stringResource(id = R.string.sunset))
+            Image(painter =  painterResource(id = R.drawable.sunset),
+                modifier = Modifier.size(iconSize),
+                contentDescription = null)
+            Text(timestampToDate(weatherResult.sys.sunset, false))
+        }
+    }
 }
 
 @Composable
@@ -423,7 +464,7 @@ fun CityDrawer(weatherItem: WeatherItem,
                 Icon(imageVector = Icons.Filled.Delete, contentDescription = null)
             }
         } },
-        label = { Text(weatherItem.cityName, overflow = TextOverflow.Ellipsis) },
+        label = { Text(weatherItem.cityName, overflow = TextOverflow.Ellipsis, fontSize = 20.sp) },
         selected = false, onClick = {
             if (!weatherItemLongClicked) {
                onClick()

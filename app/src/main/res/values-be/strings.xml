@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Wind Spell</string>
+    <string name="cities">Гарады</string>
+    <string name="as_of">Па стане на</string>
+    <string name="sunrise">Узыход Сонца</string>
+    <string name="sunset">Захад Сонца</string>
+</resources>

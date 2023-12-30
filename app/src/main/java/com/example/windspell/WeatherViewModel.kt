@@ -1,6 +1,5 @@
 package com.example.windspell
 
-import android.app.Application
 import android.util.Log
 import androidx.compose.runtime.mutableStateOf
 import androidx.datastore.core.DataStore
@@ -21,28 +20,22 @@ import com.example.windspell.network.WeatherService
 import com.example.windspell.weather.ForecastResult
 import com.example.windspell.weather.ForecastUnit
 import com.example.windspell.weather.WeatherResult
-import dagger.assisted.Assisted
-import dagger.assisted.AssistedInject
-import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import java.text.SimpleDateFormat
 import java.time.Instant
 import java.util.Date
 import java.util.Locale
-import javax.inject.Inject
 
 val recentWeatherItemPrefs = intPreferencesKey(name = "recentWeatherItem")
 
 class WeatherViewModel(
     private val recentWeatherItemDatastore: DataStore<Preferences>,
-    private val weatherRepository: WeatherRepository) : ViewModel() {
+    private val weatherRepository: WeatherRepository,
+) : ViewModel() {
 
     private val _weatherResult: MutableStateFlow<WeatherResult> = MutableStateFlow(WeatherResult())
     val weatherResult = _weatherResult.asStateFlow()
@@ -51,8 +44,10 @@ class WeatherViewModel(
     val forecastResult = _forecastResult.asStateFlow()
     private val _weatherItems: MutableStateFlow<List<WeatherItem>> = MutableStateFlow(mutableListOf())
     val weatherItems = _weatherItems.asStateFlow()
-    val lang: String = Locale.getDefault().language
+    private val defaultLocale = Locale.getDefault()
+    val lang: String = defaultLocale.language
     var defaultCityLoaded = mutableStateOf(false)
+    private var error: Exception = Exception()
 
     companion object {
         val Factory = viewModelFactory {
@@ -73,69 +68,90 @@ class WeatherViewModel(
             }
     }
 
-    fun timestampToDate(timestamp: Long): String {
-        val sdf = SimpleDateFormat("MM/dd/yyyy HH:mm:ss", Locale.getDefault())
+    fun timestampToDate(timestamp: Long, includeMMddyy: Boolean = true): String {
+        val pattern = if (includeMMddyy) "MM/dd/yyyy HH:mm:ss" else "HH:mm:ss"
+        val sdf = SimpleDateFormat(pattern, defaultLocale)
         return sdf.format(Date(timestamp * 1000))
     }
 
     private suspend fun loadRecentWeatherItem() {
         val recentWeatherItemId = recentWeatherItemDatastore.data.first()[recentWeatherItemPrefs]
         for (weatherItem in weatherRepository.getAllWeatherItems().first()){
-            if (!defaultCityLoaded.value && recentWeatherItemId != null
-                && weatherItem.cityId == recentWeatherItemId) {
-                    _weatherResult.update { item ->
-                        item.weatherItemToResult(weatherItem)
+           val requiresUpdate = Instant.now().epochSecond - weatherItem.lastTimeUpdated >= 60 * 60
+            val isRecentItem = !defaultCityLoaded.value && recentWeatherItemId != null
+                    && weatherItem.cityId == recentWeatherItemId
+            val requestValue = "${weatherItem.cityName}, ${weatherItem.sys.country}"
+            viewModelScope.launch {
+                if (weatherItem.lang != lang || requiresUpdate) {
+                    if (isRecentItem) {
+                        getWeather(requestValue, true, updateState = true, weatherItem.cityId)
+                        defaultCityLoaded.value = true
+                    } else {
+                        getWeather(requestValue, true, updateState = false, weatherItem.cityId)
                     }
-                    _forecastResult.update { forecastResult -> forecastResult.copy(weatherItem.forecastUnit) }
+                }
+                else if(isRecentItem) {
+                    _weatherResult.update { res -> res.weatherItemToResult(weatherItem) }
+                    _forecastResult.update { res -> res.copy(weatherItem.forecastUnit) }
                     defaultCityLoaded.value = true
-            }
-            if (weatherItem.lang != lang) {
-                getWeather(weatherItem.cityName, true)
-                updateWeatherItem(weatherItem)
+                }
             }
         }
     }
 
     fun insertWeatherItem(city: String, weatherResult: WeatherResult, forecastResult: ForecastResult){
-        val newWeatherItem = WeatherItem(cityName = city,
-            main = weatherResult.main,
-            weather = weatherResult.weather,
-            name = weatherResult.name,
-            sys = weatherResult.sys,
-            cityId = weatherResult.cityDd,
-            forecastUnit = forecastResult.list,
-            dt = weatherResult.dt,
-            lang = lang,
-            lastTimeUpdated = Instant.now().epochSecond)
+        val newWeatherItem = weatherResult.weatherResultToItem(city).copy(forecastUnit = forecastResult.list)
         viewModelScope.launch {
                 weatherRepository.insertWeatherItem(newWeatherItem)
         }
     }
 
-    suspend fun getWeather(city:String, insert: Boolean) {
-        defaultCityLoaded.value = false
+    suspend fun getWeather(city:String, insert: Boolean, updateState: Boolean = true, cityId: Int = -1) {
         try {
                 val geocodingResult = GeocodingService.geocodingService.geo(city).first()
                 val lat = geocodingResult.lat
                 val lon = geocodingResult.lon
-                val weatherResult = WeatherService.weatherService.getWeather(
+                var weatherResult = WeatherService.weatherService.getWeather(
                     lat, lon, lang = lang
-                ).copy(name = geocodingResult.localNames[lang] ?: "")
-                _weatherResult.update {weatherResult}
+                )
+                weatherResult = weatherResult.copy(name = geocodingResult.localNames[lang] ?: weatherResult.name)
                 val forecastResult = WeatherService.weatherService.getForecast(lat, lon)
-                _forecastResult.update {forecastResult}
+
+                if (cityId != -1) {
+                    deleteWeatherItem(cityId)
+                }
+                if(updateState) {
+                    _weatherResult.update {weatherResult}
+                    _forecastResult.update {forecastResult}
+                }
                 if (insert) {
                     insertWeatherItem(weatherResult.name, weatherResult, forecastResult)
                 }
+                defaultCityLoaded.value = false
             } catch (e: Exception) {
-                Log.d("Error", e.toString())
+                error = e
             }
     }
-    fun updateWeatherItem(weatherItem: WeatherItem) {
+    fun updateWeatherItem(weatherItem: WeatherItem, editRecentItem: Boolean = true) {
         _weatherResult.update {
                weatherResult -> weatherResult.weatherItemToResult(weatherItem)
         }
-        editRecentWeatherItem(_weatherResult.value.cityDd)
+        if (editRecentItem) {
+            editRecentWeatherItem(_weatherResult.value.cityDd)
+        }
+    }
+
+    private fun WeatherResult.weatherResultToItem(city: String): WeatherItem {
+        return WeatherItem(cityName = city,
+            main = this.main,
+            weather = this.weather,
+            name = this.name,
+            sys = this.sys,
+            cityId = this.cityDd,
+            forecastUnit = listOf(),
+            dt = this.dt,
+            lang = lang,
+            lastTimeUpdated = Instant.now().epochSecond)
     }
 
     private fun WeatherResult.weatherItemToResult(weatherItem: WeatherItem) :WeatherResult{
@@ -167,10 +183,7 @@ class WeatherViewModel(
         }
     }
 
-    fun deleteWeatherItem(city: String) = viewModelScope.launch{
-        weatherRepository.deleteWeatherItem(cityName = city)
-        _weatherResult.update {
-            WeatherResult()
-        }
+    fun deleteWeatherItem(id: Int) = viewModelScope.launch{
+        weatherRepository.deleteWeatherItem(id)
     }
 }

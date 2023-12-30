@@ -3,4 +3,6 @@
     <string name="app_name">Wind Spell</string>
     <string name="cities">Города</string>
     <string name="as_of">На момент</string>
+    <string name="sunrise">Восход</string>
+    <string name="sunset">Закат</string>
 </resources>

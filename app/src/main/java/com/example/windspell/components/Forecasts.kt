@@ -18,9 +18,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.intl.Locale
 import androidx.compose.ui.unit.dp
+import com.example.windspell.R
+import com.example.windspell.SupportedLanguages
 import com.example.windspell.weather.ForecastResult
 import com.example.windspell.weather.ForecastUnit
 import java.text.SimpleDateFormat
@@ -36,7 +39,7 @@ fun Forecasts(forecastResult: ForecastResult,
               modifier: Modifier = Modifier) {
     Column(
         verticalArrangement = Arrangement.spacedBy(10.dp),
-        modifier = modifier.padding(35.dp)
+        modifier = modifier.padding(dimensionResource(id = R.dimen.padding_medium))
     ) {
         forecastResult.list.forEach {
             ForecastItem(forecastUnit = it, lang)
@@ -49,11 +52,11 @@ fun ForecastItem(forecastUnit: ForecastUnit, lang: String) {
     Row(
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(timestampToDate(forecastUnit.timestamp, lang)) //convert to week day
+        Text(timestampToDayOfWeek(forecastUnit.timestamp, lang)) //convert to week day
         Spacer(modifier = Modifier.weight(1f))
 
         Image(painter = painterResource(id = getWeatherIcon(forecastUnit.weather.first().icon)),
-            modifier = Modifier.size(50.dp),
+            modifier = Modifier.size(dimensionResource(id = R.dimen.weather_icon_size)),
             contentDescription = null)
 
         Spacer(modifier = Modifier.weight(0.1f))
@@ -63,14 +66,14 @@ fun ForecastItem(forecastUnit: ForecastUnit, lang: String) {
     }
 }
 
-fun timestampToDate(timestamp: Long, lang: String): String {
+fun timestampToDayOfWeek(timestamp: Long, lang: String): String {
     val instant = Instant.ofEpochSecond(timestamp)
     val dayOfWeek = DayOfWeek.from(instant.atZone(ZoneId.systemDefault()))
     return translatedDayNames(dayOfWeek, lang)
 }
 
 fun translatedDayNames(dayOfWeek: DayOfWeek, lang: String):String {
-    if (lang == "ru" || lang == "by") {
+    if (lang == SupportedLanguages.ru.name) {
         return when(dayOfWeek.name) {
             "MONDAY" -> "ПОНЕДЕЛЬНИК"
             "TUESDAY" -> "ВТОРНИК"
@@ -81,7 +84,7 @@ fun translatedDayNames(dayOfWeek: DayOfWeek, lang: String):String {
             else -> "ВОСКРЕСЕНЬЕ"
         }
     }
-    if (lang == "pl") {
+    if (lang == SupportedLanguages.pl.name) {
         return when(dayOfWeek.name) {
             "MONDAY" -> "PONIEDZIAŁEK"
             "TUESDAY" -> "WTOREK"
@@ -90,6 +93,17 @@ fun translatedDayNames(dayOfWeek: DayOfWeek, lang: String):String {
             "FRIDAY" -> "PIĄTEK"
             "SATURDAY" -> "SOBOTA"
             else -> "NIEDZIELA"
+        }
+    }
+    if (lang == SupportedLanguages.be.name) {
+        return when(dayOfWeek.name) {
+            "MONDAY" -> "ПАНЯДЗЕЛАК"
+            "TUESDAY" -> "АЎТОРАК"
+            "WEDNESDAY" -> "СЕРАДА"
+            "THURSDAY" -> "ЧАЦВЕР"
+            "FRIDAY" -> "ПЯТНІЦА"
+            "SATURDAY" -> "СУБОТА"
+            else -> "НЯДЗЕЛЯ"
         }
     }
     else {

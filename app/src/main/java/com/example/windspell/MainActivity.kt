@@ -4,7 +4,6 @@ import android.content.Context
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -23,31 +22,45 @@ import com.example.windspell.components.MainScreen
 import com.example.windspell.network.ConnectionState
 import com.example.windspell.network.connectivityState
 import com.example.windspell.ui.theme.WindSpellTheme
-import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import java.util.Locale
-import javax.inject.Inject
 
 val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "theme")
 val darkThemePrefs = booleanPreferencesKey(name = "useDarkTheme")
 
-class MainActivity : ComponentActivity() {
+enum class SupportedLanguages{
+    en,
+    ru,
+    be,
+    pl
+}
+val supportedLanguages = listOf(
+    SupportedLanguages.en.name,
+    SupportedLanguages.ru.name,
+    SupportedLanguages.be.name,
+    SupportedLanguages.pl.name)
 
-    private fun Context.setAppLocale(language: String): Context {
+
+class MainActivity : ComponentActivity() {
+    private fun Context.setAppLocale(): Context {
         val config = resources.configuration
-        val locale = Locale(language)
+        var locale = Locale.getDefault()
+        if (!supportedLanguages.contains(locale.language)) {
+            locale = Locale(SupportedLanguages.en.name)
+        }
         Locale.setDefault(locale)
         config.setLocale(locale)
         config.setLayoutDirection(locale)
         return createConfigurationContext(config)
     }
     override fun attachBaseContext(newBase: Context) {
-        super.attachBaseContext(newBase.setAppLocale("pl"))
+        super.attachBaseContext(newBase.setAppLocale())
     }
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
         setContent {
             val coroutineScope = rememberCoroutineScope()
             var darkTheme by rememberSaveable {
