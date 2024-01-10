@@ -8,7 +8,8 @@ Wind Spell is a weather app developed with the help of the following technologie
 - Retrofit
 - Room
 - SQL
-- Open Weather API  
+- Open Weather API
+- Internet ConnectivityManager
  
 It supports the following langugages, where each is set according to a user's location:
 - English
@@ -17,6 +18,11 @@ It supports the following langugages, where each is set according to a user's lo
 - Russian
 
 https://github.com/EvgenSuit/WindSpell/assets/77486483/9e4e4942-163f-4a81-ae57-e05b320b0b1a
+
+
+https://github.com/EvgenSuit/WindSpell/assets/77486483/233d5b18-1ba2-4fd3-afe3-742cd0711c68
+
+
 
 ## Run Locally
 
