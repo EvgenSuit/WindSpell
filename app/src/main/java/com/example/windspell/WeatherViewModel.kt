@@ -20,6 +20,7 @@ import com.example.windspell.network.WeatherService
 import com.example.windspell.weather.ForecastResult
 import com.example.windspell.weather.ForecastUnit
 import com.example.windspell.weather.WeatherResult
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
@@ -29,10 +30,12 @@ import java.text.SimpleDateFormat
 import java.time.Instant
 import java.util.Date
 import java.util.Locale
+import javax.inject.Inject
 
 val recentWeatherItemPrefs = intPreferencesKey(name = "recentWeatherItem")
 
-class WeatherViewModel(
+@HiltViewModel
+class WeatherViewModel @Inject constructor(
     private val recentWeatherItemDatastore: DataStore<Preferences>,
     private val weatherRepository: WeatherRepository,
 ) : ViewModel() {
@@ -49,7 +52,7 @@ class WeatherViewModel(
     var defaultCityLoaded = mutableStateOf(false)
     private var error: Exception = Exception()
 
-    companion object {
+    /*companion object {
         val Factory = viewModelFactory {
             initializer {
                 val context = (this[APPLICATION_KEY] as WeatherApplication).context
@@ -57,7 +60,7 @@ class WeatherViewModel(
                 WeatherViewModel(context.weatherDataStore, WeatherRepository(dao))
             }
         }
-    }
+    }*/
 
     init {
             viewModelScope.launch {

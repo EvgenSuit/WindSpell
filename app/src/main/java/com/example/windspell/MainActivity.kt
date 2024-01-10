@@ -22,6 +22,7 @@ import com.example.windspell.components.MainScreen
 import com.example.windspell.network.ConnectionState
 import com.example.windspell.network.connectivityState
 import com.example.windspell.ui.theme.WindSpellTheme
+import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -42,7 +43,7 @@ val supportedLanguages = listOf(
     SupportedLanguages.be.name,
     SupportedLanguages.pl.name)
 
-
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     private fun Context.setAppLocale(): Context {
         val config = resources.configuration

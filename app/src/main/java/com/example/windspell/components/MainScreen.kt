@@ -80,13 +80,14 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import java.time.Instant
 import kotlin.math.roundToInt
+import androidx.hilt.navigation.compose.hiltViewModel
 
 val Context.weatherDataStore: DataStore<Preferences> by preferencesDataStore(name = "weatherItem")
 @Composable
-fun MainScreen(viewModel: WeatherViewModel = viewModel(factory = WeatherViewModel.Factory),
-               darkTheme: Boolean,
+fun MainScreen(darkTheme: Boolean,
                networkIsOn: Boolean = true,
                onThemeChanged: (Boolean) -> Unit){
+    val viewModel: WeatherViewModel = hiltViewModel()
     val weatherResult by viewModel.weatherResult.collectAsState()
     val forecastResult by viewModel.forecastResult.collectAsState()
     val weatherItems by viewModel.weatherItems.collectAsState()
