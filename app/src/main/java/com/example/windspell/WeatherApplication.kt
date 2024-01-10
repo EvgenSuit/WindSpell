@@ -5,10 +5,4 @@ import android.content.Context
 import dagger.hilt.android.HiltAndroidApp
 
 @HiltAndroidApp
-class WeatherApplication: Application() {
-    /*lateinit var context: Context
-    override fun onCreate() {
-        super.onCreate()
-        context = applicationContext
-    }*/
-}
+class WeatherApplication: Application() {}

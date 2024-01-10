@@ -52,15 +52,6 @@ class WeatherViewModel @Inject constructor(
     var defaultCityLoaded = mutableStateOf(false)
     private var error: Exception = Exception()
 
-    /*companion object {
-        val Factory = viewModelFactory {
-            initializer {
-                val context = (this[APPLICATION_KEY] as WeatherApplication).context
-                val dao = WeatherDatabase.getWeatherDatabase(context).weatherDao()
-                WeatherViewModel(context.weatherDataStore, WeatherRepository(dao))
-            }
-        }
-    }*/
 
     init {
             viewModelScope.launch {
