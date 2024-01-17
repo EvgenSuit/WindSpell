@@ -4,4 +4,6 @@
     <string name="as_of">As of</string>
     <string name="sunrise">Sunrise</string>
     <string name="sunset">Sunset</string>
+    <string name="min_temp">Min</string>
+    <string name="max_temp">Max</string>
 </resources>

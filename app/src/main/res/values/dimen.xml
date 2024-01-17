@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <dimen name="weather_icon_size">50dp</dimen>
+    <dimen name="drawer_icon_size">40dp</dimen>
     <dimen name="sunrise_sunset_icon_size">100dp</dimen>
     <dimen name="padding_tiny">8dp</dimen>
     <dimen name="padding_small">16dp</dimen>
     <dimen name="padding_medium">32dp</dimen>
-    <dimen name="padding_huge">200dp</dimen>
+    <dimen name="padding_huge">250dp</dimen>
 </resources>

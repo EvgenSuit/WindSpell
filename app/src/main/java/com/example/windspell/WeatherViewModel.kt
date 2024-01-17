@@ -1,18 +1,12 @@
 package com.example.windspell
 
-import android.util.Log
 import androidx.compose.runtime.mutableStateOf
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.Companion.APPLICATION_KEY
 import androidx.lifecycle.viewModelScope
-import androidx.lifecycle.viewmodel.initializer
-import androidx.lifecycle.viewmodel.viewModelFactory
-import com.example.windspell.components.weatherDataStore
-import com.example.windspell.data.WeatherDatabase
 import com.example.windspell.data.WeatherItem
 import com.example.windspell.data.WeatherRepository
 import com.example.windspell.network.GeocodingService
@@ -71,7 +65,7 @@ class WeatherViewModel @Inject constructor(
     private suspend fun loadRecentWeatherItem() {
         val recentWeatherItemId = recentWeatherItemDatastore.data.first()[recentWeatherItemPrefs]
         for (weatherItem in weatherRepository.getAllWeatherItems().first()){
-           val requiresUpdate = Instant.now().epochSecond - weatherItem.lastTimeUpdated >= 60 * 60
+            val requiresUpdate = Instant.now().epochSecond - weatherItem.lastTimeUpdated >= 60*60
             val isRecentItem = !defaultCityLoaded.value && recentWeatherItemId != null
                     && weatherItem.cityId == recentWeatherItemId
             val requestValue = "${weatherItem.cityName}, ${weatherItem.sys.country}"
@@ -84,7 +78,12 @@ class WeatherViewModel @Inject constructor(
                         getWeather(requestValue, true, updateState = false, weatherItem.cityId)
                     }
                 }
-                else if(isRecentItem) {
+                /*
+                if languages don't differ, an item was updated
+                later than an hour ago and this item is recent,
+                then show it on the screen as it is
+                 */
+                if(isRecentItem) {
                     _weatherResult.update { res -> res.weatherItemToResult(weatherItem) }
                     _forecastResult.update { res -> res.copy(weatherItem.forecastUnit) }
                     defaultCityLoaded.value = true
@@ -101,6 +100,7 @@ class WeatherViewModel @Inject constructor(
     }
 
     suspend fun getWeather(city:String, insert: Boolean, updateState: Boolean = true, cityId: Int = -1) {
+        defaultCityLoaded.value = false
         try {
                 val geocodingResult = GeocodingService.geocodingService.geo(city).first()
                 val lat = geocodingResult.lat
@@ -121,7 +121,6 @@ class WeatherViewModel @Inject constructor(
                 if (insert) {
                     insertWeatherItem(weatherResult.name, weatherResult, forecastResult)
                 }
-                defaultCityLoaded.value = false
             } catch (e: Exception) {
                 error = e
             }

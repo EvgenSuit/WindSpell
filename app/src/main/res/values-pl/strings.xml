@@ -5,4 +5,6 @@
     <string name="as_of">Od</string>
     <string name="sunrise">Wschód Słońca</string>
     <string name="sunset">Zachód Słońca</string>
+    <string name="min_temp">Maks</string>
+    <string name="max_temp">Min</string>
 </resources>

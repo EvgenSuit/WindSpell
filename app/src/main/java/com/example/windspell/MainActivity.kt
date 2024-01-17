@@ -18,12 +18,11 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.preferencesDataStore
-import com.example.windspell.components.MainScreen
+import com.example.windspell.screens.MainScreen
 import com.example.windspell.network.ConnectionState
 import com.example.windspell.network.connectivityState
 import com.example.windspell.ui.theme.WindSpellTheme
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import java.util.Locale
@@ -66,11 +65,11 @@ class MainActivity : ComponentActivity() {
             val coroutineScope = rememberCoroutineScope()
             var darkTheme by rememberSaveable {
                mutableStateOf(runBlocking {
-                   applicationContext.dataStore.data.first()[darkThemePrefs] ?: true
+                   false
                })
             }
             val connection by connectivityState()
-            WindSpellTheme(darkTheme = darkTheme) {
+            WindSpellTheme(useDarkTheme = darkTheme) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
@@ -78,7 +77,7 @@ class MainActivity : ComponentActivity() {
                     MainScreen(darkTheme = darkTheme, networkIsOn = connection == ConnectionState.Available) {
                         coroutineScope.launch {
                             applicationContext.dataStore.edit {
-                                val currentThemeColor = it[darkThemePrefs] ?: true
+                                val currentThemeColor = it[darkThemePrefs] == true
                                 it[darkThemePrefs] = !currentThemeColor
                                 darkTheme = !currentThemeColor
                             }

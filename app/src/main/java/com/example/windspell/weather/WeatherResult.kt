@@ -12,7 +12,7 @@ data class WeatherResult(
     @SerializedName("id") var cityDd: Int = 0
 )
 
-data class  Weather (
+data class Weather (
     @SerializedName("main") var main: String = "",
     @SerializedName("description") var description: String = "",
     @SerializedName("icon") var icon: String = ""

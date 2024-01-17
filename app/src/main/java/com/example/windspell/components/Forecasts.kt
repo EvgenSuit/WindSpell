@@ -1,45 +1,32 @@
 package com.example.windspell.components
 
-import android.os.Build
-import android.util.Log
-import androidx.annotation.RequiresApi
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.intl.Locale
 import androidx.compose.ui.unit.dp
 import com.example.windspell.R
 import com.example.windspell.SupportedLanguages
 import com.example.windspell.weather.ForecastResult
 import com.example.windspell.weather.ForecastUnit
-import java.text.SimpleDateFormat
 import java.time.DayOfWeek
 import java.time.Instant
 import java.time.ZoneId
-import java.util.Date
 import kotlin.math.roundToInt
 
 @Composable
 fun Forecasts(forecastResult: ForecastResult,
-              lang: String,
-              modifier: Modifier = Modifier) {
+              lang: String) {
     Column(
-        verticalArrangement = Arrangement.spacedBy(10.dp),
-        modifier = modifier.padding(dimensionResource(id = R.dimen.padding_medium))
+        verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         forecastResult.list.forEach {
             ForecastItem(forecastUnit = it, lang)
@@ -50,7 +37,8 @@ fun Forecasts(forecastResult: ForecastResult,
 @Composable
 fun ForecastItem(forecastUnit: ForecastUnit, lang: String) {
     Row(
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = whiteBackground
     ) {
         Text(timestampToDayOfWeek(forecastUnit.timestamp, lang)) //convert to week day
         Spacer(modifier = Modifier.weight(1f))
