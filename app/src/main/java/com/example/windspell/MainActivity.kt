@@ -23,6 +23,7 @@ import com.example.windspell.network.ConnectionState
 import com.example.windspell.network.connectivityState
 import com.example.windspell.ui.theme.WindSpellTheme
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import java.util.Locale
@@ -65,7 +66,7 @@ class MainActivity : ComponentActivity() {
             val coroutineScope = rememberCoroutineScope()
             var darkTheme by rememberSaveable {
                mutableStateOf(runBlocking {
-                   false
+                  applicationContext.dataStore.data.first()[darkThemePrefs] ?: false
                })
             }
             val connection by connectivityState()
