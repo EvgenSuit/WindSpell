@@ -10,17 +10,22 @@ Wind Spell is a weather app developed with the help of the following technologie
 - SQL
 - Open Weather API
 - Internet ConnectivityManager
+- JUnit
  
-It supports the following langugages, where each is set according to a user's location:
+It supports the following languages, where each is set according to a user's location:
 - English
 - Polish
 - Belarusian
 - Russian
 
-https://github.com/EvgenSuit/WindSpell/assets/77486483/9e4e4942-163f-4a81-ae57-e05b320b0b1a
+**In the recent update the UI reflects the daytime of the searched city(it gets brighter when it's day, and darker when it's night)**
+
+https://github.com/EvgenSuit/WindSpell/assets/77486483/2f7d2062-b7a4-4542-acef-d36ddd47d769
 
 
-https://github.com/EvgenSuit/WindSpell/assets/77486483/233d5b18-1ba2-4fd3-afe3-742cd0711c68
+https://github.com/EvgenSuit/WindSpell/assets/77486483/bbc3bf1b-8be4-49fb-9591-f645649e6104
+
+
 
 
 
