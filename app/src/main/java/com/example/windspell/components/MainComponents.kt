@@ -255,9 +255,12 @@ fun WeatherDetails(
         //Current temperature (\u2103 means Celsius)
         Text(
             "${weatherResult.main.temp.roundToInt()} \u2103",
-            modifier = Modifier.padding(top = paddingSmall, bottom = paddingSmall),
-            style = MaterialTheme.typography.displayMedium
+            style = MaterialTheme.typography.displayMedium,
+            modifier = Modifier.padding(top = paddingSmall, bottom = paddingSmall)
         )
+        Text(weatherResult.weather.first().description,
+            style = MaterialTheme.typography.displayMedium,
+            modifier = Modifier.padding(bottom = paddingSmall))
         //Min Max Temp
         Row(
             horizontalArrangement = Arrangement.SpaceBetween,
