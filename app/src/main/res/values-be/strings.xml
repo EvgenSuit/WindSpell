@@ -5,6 +5,6 @@
     <string name="as_of">Па стане на</string>
     <string name="sunrise">Узыход Сонца</string>
     <string name="sunset">Захад Сонца</string>
-    <string name="min_temp">Макс</string>
-    <string name="max_temp">мін</string>
+    <string name="min_temp">Мін</string>
+    <string name="max_temp">Макс</string>
 </resources>
