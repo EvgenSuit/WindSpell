@@ -7,4 +7,15 @@
     <string name="sunset">Захад Сонца</string>
     <string name="min_temp">Мін</string>
     <string name="max_temp">Макс</string>
+    <string name="no_internet">Няма Інтэрнэту</string>
+    <string name="monday">Панядзелак</string>
+    <string name="tuesday">Аўторак</string>
+    <string name="wednesday">Серада</string>
+    <string name="thursday">Чацвер</string>
+    <string name="friday">Пятніца</string>
+    <string name="saturday">Субота</string>
+    <string name="sunday">Нядзеля</string>
+    <string name="tap_to_add_city">Націсніце, каб дадаць у спіс</string>
+    <string name="no_weather_data">Няма даных аб надвор\'і</string>
+    <string name="search">Пошук</string>
 </resources>

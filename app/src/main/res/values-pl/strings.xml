@@ -7,4 +7,15 @@
     <string name="sunset">Zachód Słońca</string>
     <string name="min_temp">Min</string>
     <string name="max_temp">Maks</string>
+    <string name="no_internet">Brak internetu</string>
+    <string name="monday">Poniedziałek</string>
+    <string name="tuesday">Wtorek</string>
+    <string name="wednesday">Środa</string>
+    <string name="thursday">Czwartek</string>
+    <string name="friday">Piątek</string>
+    <string name="saturday">Sobota</string>
+    <string name="sunday">Niedziela</string>
+    <string name="tap_to_add_city">Kliknij, aby dodać do listy</string>
+    <string name="no_weather_data">Brak danych pogodowych</string>
+    <string name="search">Szukaj</string>
 </resources>
