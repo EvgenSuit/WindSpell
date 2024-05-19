@@ -12,8 +12,6 @@ interface WeatherDao {
     suspend fun insertWeatherItem(weatherItem: WeatherItem)
     @Query("DELETE FROM WEATHERITEM WHERE cityId = :id")
     suspend fun deleteWeatherItem(id: Int)
-    @Query("SELECT * FROM WEATHERITEM WHERE cityId = :id")
-    fun getWeatherItem(id: Int): Flow<WeatherItem>
     @Query("SELECT * FROM WEATHERITEM ORDER BY lastTimeUpdated")
     fun getAllWeatherItems(): Flow<List<WeatherItem>>
 }

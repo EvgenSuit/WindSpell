@@ -1,91 +1,163 @@
 package com.example.windspell
 
-import android.content.Context
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.DismissState
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Snackbar
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Surface
+import androidx.compose.material3.SwipeToDismiss
+import androidx.compose.material3.Text
+import androidx.compose.material3.rememberDismissState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.datastore.core.DataStore
-import androidx.datastore.preferences.core.Preferences
-import androidx.datastore.preferences.core.booleanPreferencesKey
-import androidx.datastore.preferences.core.edit
-import androidx.datastore.preferences.preferencesDataStore
-import com.example.windspell.screens.MainScreen
-import com.example.windspell.network.ConnectionState
-import com.example.windspell.network.connectivityState
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.lifecycle.lifecycleScope
+import com.example.windspell.data.DataStoreManager
+import com.example.windspell.network.NetworkStatus
+import com.example.windspell.presentation.MainScreen
 import com.example.windspell.ui.theme.WindSpellTheme
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
-import java.util.Locale
+import javax.inject.Inject
 
-val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "theme")
-val darkThemePrefs = booleanPreferencesKey(name = "useDarkTheme")
-
-enum class SupportedLanguages{
-    en,
-    ru,
-    be,
-    pl
-}
-val supportedLanguages = listOf(
-    SupportedLanguages.en.name,
-    SupportedLanguages.ru.name,
-    SupportedLanguages.be.name,
-    SupportedLanguages.pl.name)
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
-    private fun Context.setAppLocale(): Context {
-        val config = resources.configuration
-        var locale = Locale.getDefault()
-        if (!supportedLanguages.contains(locale.language)) {
-            locale = Locale(SupportedLanguages.en.name)
+    private var isThemeDark = mutableStateOf(false)
+    private var showSplashScreen = mutableStateOf(true)
+
+    @Inject
+    lateinit var dataStoreManager: DataStoreManager
+
+    private fun collectShowSplashScreen() {
+        lifecycleScope.launch {
+            dataStoreManager.collectShowSplashScreen {
+                showSplashScreen.value = it
+            }
         }
-        Locale.setDefault(locale)
-        config.setLocale(locale)
-        config.setLayoutDirection(locale)
-        return createConfigurationContext(config)
     }
-    override fun attachBaseContext(newBase: Context) {
-        super.attachBaseContext(newBase.setAppLocale())
+    private fun collectTheme() {
+        lifecycleScope.launch {
+            dataStoreManager.collectTheme {
+                isThemeDark.value = it
+            }
+        }
     }
+    @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
+        installSplashScreen().setKeepOnScreenCondition {
+            showSplashScreen.value
+        }
+        collectTheme()
+        collectShowSplashScreen()
         setContent {
-            val coroutineScope = rememberCoroutineScope()
-            var darkTheme by rememberSaveable {
-               mutableStateOf(runBlocking {
-                  applicationContext.dataStore.data.first()[darkThemePrefs] ?: false
-               })
+            val noInternet = stringResource(R.string.no_internet)
+            var networkIsOn by remember {
+                mutableStateOf(true)
             }
-            val connection by connectivityState()
-            WindSpellTheme(useDarkTheme = darkTheme) {
+            val snackbarHostState = remember {
+                SnackbarHostState()
+            }
+            val dismissState = rememberDismissState()
+            NetworkStatus {
+                networkIsOn = it
+            }
+            LaunchedEffect(networkIsOn) {
+                if (!networkIsOn) {
+                    val res = snackbarHostState.showSnackbar(noInternet)
+                    if (res == SnackbarResult.Dismissed) {
+                        snackbarHostState.currentSnackbarData?.dismiss()
+                    }
+                }
+            }
+            WindSpellTheme(useDarkTheme = isThemeDark.value) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    MainScreen(darkTheme = darkTheme, networkIsOn = connection == ConnectionState.Available) {
-                        coroutineScope.launch {
-                            applicationContext.dataStore.edit {
-                                val currentThemeColor = it[darkThemePrefs] == true
-                                it[darkThemePrefs] = !currentThemeColor
-                                darkTheme = !currentThemeColor
+                    BoxWithConstraints(Modifier.fillMaxSize()) {
+                        MainScreen(darkTheme = isThemeDark.value,
+                            networkIsOn = networkIsOn,
+                            maxWidth = this.maxWidth,
+                            onThemeChanged = {
+                                lifecycleScope.launch {
+                                    dataStoreManager.changeTheme(!isThemeDark.value)
+                                }}) {
+                            lifecycleScope.launch { snackbarHostState.showSnackbar(it) }
+                        }
+                        CustomSnackbar(networkIsOn, snackbarHostState, dismissState)
+                    }
+                    }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun CustomSnackbar(networkIsOn: Boolean,
+                   snackbarHostState: SnackbarHostState,
+                   dismissState: DismissState) {
+    SnackbarHost(hostState = snackbarHostState,
+        snackbar = {data ->
+            SwipeToDismiss(
+                state = dismissState,
+                background = {},
+                dismissContent = {
+                    Snackbar(
+                        containerColor = MaterialTheme.colorScheme.errorContainer) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            if (!networkIsOn) {
+                                Icon(painter = painterResource(R.drawable.no_wifi),
+                                    modifier = Modifier.size(30.dp),
+                                    tint = MaterialTheme.colorScheme.error,
+                                    contentDescription = null)
+                            }
+                            Box(modifier = Modifier.fillMaxWidth(),
+                                contentAlignment = Alignment.Center) {
+                                Text(data.visuals.message,
+                                    color = MaterialTheme.colorScheme.onBackground,
+                                    textAlign = TextAlign.Center)
                             }
                         }
                     }
                 }
-            }
-        }
-    }
+            )
+        },
+        modifier = Modifier
+            .fillMaxWidth()
+            .wrapContentHeight(Alignment.Top)
+            .padding(10.dp)
+            .clip(RoundedCornerShape(20.dp)))
 }

@@ -6,4 +6,16 @@
     <string name="sunset">Sunset</string>
     <string name="min_temp">Min</string>
     <string name="max_temp">Max</string>
+    <string name="no_internet">No internet</string>
+    <string name="monday">Monday</string>
+    <string name="tuesday">Tuesday</string>
+    <string name="wednesday">Wednesday</string>
+    <string name="thursday">Thursday</string>
+    <string name="friday">Friday</string>
+    <string name="saturday">Saturday</string>
+    <string name="sunday">Sunday</string>
+    <string name="tap_to_add_city">Tap to add to your list</string>
+    <string name="delete" translatable="false">Delete</string>
+    <string name="no_weather_data">No weather data</string>
+    <string name="search">Search</string>
 </resources>
